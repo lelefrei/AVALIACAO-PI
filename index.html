@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="UTF-8">
+<title>Avaliação PI - Profissional</title>
+
+<!-- Firebase COMPAT (corrigido) -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+
+<style>
+body { font-family: Arial; background:#eef2f7; padding:20px; }
+.container {
+    background:#fff;
+    padding:20px;
+    border-radius:12px;
+    max-width:700px;
+    margin:auto;
+    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+}
+h2 { text-align:center; }
+.box { margin:10px 0; }
+input { width:80px; padding:5px; }
+button {
+    width:100%;
+    padding:12px;
+    background:#2563eb;
+    color:white;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+}
+.result {
+    margin-top:20px;
+    white-space:pre-line;
+    font-weight:bold;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>Avaliação Anônima - Projeto Integrador</h2>
+
+<form id="form">
+<div class="box">Adeilton: <input type="number" min="0" max="5" step="0.1"></div>
+<div class="box">Caio: <input type="number" min="0" max="5" step="0.1"></div>
+<div class="box">Gislei: <input type="number" min="0" max="5" step="0.1"></div>
+<div class="box">Kayky: <input type="number" min="0" max="5" step="0.1"></div>
+<div class="box">Leticia: <input type="number" min="0" max="5" step="0.1"></div>
+<div class="box">Lucas: <input type="number" min="0" max="5" step="0.1"></div>
+<div class="box">Maria Cecilia: <input type="number" min="0" max="5" step="0.1"></div>
+<div class="box">Victor: <input type="number" min="0" max="5" step="0.1"></div>
+
+<button type="button" onclick="enviar()">Enviar Avaliação</button>
+</form>
+
+<div class="result" id="resultado"></div>
+</div>
+
+<script>
+
+// 🔥 SUA CONFIG (já inserida)
+const firebaseConfig = {
+  apiKey: "AIzaSyB09c0-h7eMu_IxtG0hw_YeIpbICyQD1pw",
+  authDomain: "avaliacao-pi.firebaseapp.com",
+  projectId: "avaliacao-pi",
+  storageBucket: "avaliacao-pi.firebasestorage.app",
+  messagingSenderId: "652153776356",
+  appId: "1:652153776356:web:2db787c5c7c0dea224a4f1"
+};
+
+// Inicializa Firebase
+const app = firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+async function enviar() {
+    let inputs = document.querySelectorAll("input");
+    let notas = [];
+
+    for (let i = 0; i < inputs.length; i++) {
+        let valor = parseFloat(inputs[i].value);
+
+        if (isNaN(valor) || valor < 0 || valor > 5) {
+            alert("Preencha todas as notas entre 0 e 5");
+            return;
+        }
+
+        notas.push(valor);
+    }
+
+    await db.collection("avaliacoes").add({ notas });
+
+    document.getElementById("form").reset();
+    document.getElementById("resultado").innerText = "Avaliação enviada com sucesso!";
+
+    calcular();
+}
+
+async function calcular() {
+    const snapshot = await db.collection("avaliacoes").get();
+
+    if (snapshot.size < 8) {
+        document.getElementById("resultado").innerText =
+            `Aguardando ${8 - snapshot.size} avaliações...`;
+        return;
+    }
+
+    let totais = Array(8).fill(0);
+
+    snapshot.forEach(doc => {
+        let dados = doc.data().notas;
+
+        dados.forEach((nota, i) => {
+            totais[i] += nota;
+        });
+    });
+
+    let medias = totais.map(t => t / snapshot.size);
+
+    let nomes = ["Adeilton","Caio","Gislei","Kayky","Leticia","Lucas","Maria Cecilia","Victor"];
+
+    let texto = "RESULTADO FINAL:\n\n";
+
+    medias.forEach((m,i)=>{
+        texto += `${nomes[i]}: ${m.toFixed(2)}\n`;
+    });
+
+    document.getElementById("resultado").innerText = texto;
+}
+
+// já tenta calcular ao abrir
+calcular();
+
+</script>
+
+</body>
+</html>
