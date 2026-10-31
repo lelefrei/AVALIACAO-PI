@@ -1,39 +1,62 @@
+
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
 <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Avaliação PI - Profissional</title>
 
-<!-- Firebase COMPAT (corrigido) -->
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
 
 <style>
-body { font-family: Arial; background:#eef2f7; padding:20px; }
+body {
+    font-family: Arial;
+    background: #eef2f7;
+    padding: 20px;
+}
+
 .container {
-    background:#fff;
-    padding:20px;
-    border-radius:12px;
-    max-width:700px;
-    margin:auto;
-    box-shadow:0 5px 15px rgba(0,0,0,0.1);
+    background: #fff;
+    padding: 20px;
+    border-radius: 12px;
+    max-width: 700px;
+    margin: auto;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.1);
 }
-h2 { text-align:center; }
-.box { margin:10px 0; }
-input { width:80px; padding:5px; }
+
+h2 {
+    text-align: center;
+}
+
+.box {
+    margin: 10px 0;
+}
+
+input {
+    width: 80px;
+    padding: 5px;
+}
+
 button {
-    width:100%;
-    padding:12px;
-    background:#2563eb;
-    color:white;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
+    width: 100%;
+    padding: 12px;
+    background: #2563eb;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
 }
+
+button:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
 .result {
-    margin-top:20px;
-    white-space:pre-line;
-    font-weight:bold;
+    margin-top: 20px;
+    white-space: pre-line;
+    font-weight: bold;
 }
 </style>
 </head>
@@ -41,96 +64,202 @@ button {
 <body>
 
 <div class="container">
+
 <h2>Avaliação Anônima - Projeto Integrador</h2>
 
 <form id="form">
-<div class="box">Leticia: <input type="number" min="0" max="5" step="0.1"></div>
-<div class="box">Camila: <input type="number" min="0" max="5" step="0.1"></div>
-<div class="box">André: <input type="number" min="0" max="5" step="0.1"></div>
-<div class="box">Kayky: <input type="number" min="0" max="5" step="0.1"></div>
-<div class="box">Danrlei: <input type="number" min="0" max="5" step="0.1"></div>
-<div class="box">Everton: <input type="number" min="0" max="5" step="0.1"></div>
-<div class="box">Helder: <input type="number" min="0" max="5" step="0.1"></div>
-<div class="box">Veronica: <input type="number" min="0" max="5" step="0.1"></div>
 
-<button type="button" onclick="enviar()">Enviar Avaliação</button>
+<div class="box">Leticia: <input type="number" min="0" max="5" step="0.1" required></div>
+<div class="box">Camila: <input type="number" min="0" max="5" step="0.1" required></div>
+<div class="box">André: <input type="number" min="0" max="5" step="0.1" required></div>
+<div class="box">Kayky: <input type="number" min="0" max="5" step="0.1" required></div>
+<div class="box">Danrlei: <input type="number" min="0" max="5" step="0.1" required></div>
+<div class="box">Everton: <input type="number" min="0" max="5" step="0.1" required></div>
+<div class="box">Helder: <input type="number" min="0" max="5" step="0.1" required></div>
+<div class="box">Veronica: <input type="number" min="0" max="5" step="0.1" required></div>
+
+<button id="btnEnviar" type="submit">Enviar Avaliação</button>
+
 </form>
 
 <div class="result" id="resultado"></div>
+
 </div>
 
 <script>
 
-// 🔥 SUA CONFIG (já inserida)
+// CONFIGURAÇÃO FIREBASE
 const firebaseConfig = {
-  apiKey: "AIzaSyB09c0-h7eMu_IxtG0hw_YeIpbICyQD1pw",
-  authDomain: "avaliacao-pi.firebaseapp.com",
-  projectId: "avaliacao-pi",
-  storageBucket: "avaliacao-pi.firebasestorage.app",
-  messagingSenderId: "652153776356",
-  appId: "1:652153776356:web:2db787c5c7c0dea224a4f1"
+    apiKey: "AIzaSyB09c0-h7eMu_IxtG0hw_YeIpbICyQD1pw",
+    authDomain: "avaliacao-pi.firebaseapp.com",
+    projectId: "avaliacao-pi",
+    storageBucket: "avaliacao-pi.firebasestorage.app",
+    messagingSenderId: "652153776356",
+    appId: "1:652153776356:web:2db787c5c7c0dea224a4f1"
 };
 
-// Inicializa Firebase
-const app = firebase.initializeApp(firebaseConfig);
+// INICIALIZA FIREBASE
+const app = firebase.apps.length
+    ? firebase.app()
+    : firebase.initializeApp(firebaseConfig);
+
 const db = firebase.firestore();
 
-async function enviar() {
-    let inputs = document.querySelectorAll("input");
-    let notas = [];
+const nomes = [
+    "Leticia",
+    "Camila",
+    "André",
+    "Kayky",
+    "Danrlei",
+    "Everton",
+    "Helder",
+    "Veronica"
+];
 
-    for (let i = 0; i < inputs.length; i++) {
-        let valor = parseFloat(inputs[i].value);
+const formulario = document.getElementById("form");
+const botao = document.getElementById("btnEnviar");
+const resultado = document.getElementById("resultado");
 
-        if (isNaN(valor) || valor < 0 || valor > 5) {
-            alert("Preencha todas as notas entre 0 e 5");
-            return;
-        }
-
-        notas.push(valor);
-    }
-
-    await db.collection("avaliacoes").add({ notas });
-
-    document.getElementById("form").reset();
-    document.getElementById("resultado").innerText = "Avaliação enviada com sucesso!";
-
-    calcular();
+function mostrarMensagem(mensagem, erro = false) {
+    resultado.textContent = mensagem;
+    resultado.style.color = erro ? "#b91c1c" : "#166534";
 }
 
-async function calcular() {
-    const snapshot = await db.collection("avaliacoes").get();
+// ENVIAR AVALIAÇÃO
+formulario.addEventListener("submit", async function(evento) {
 
-    if (snapshot.size < 8) {
-        document.getElementById("resultado").innerText =
-            `Aguardando ${8 - snapshot.size} avaliações...`;
+    evento.preventDefault();
+
+    const inputs = Array.from(
+        formulario.querySelectorAll('input[type="number"]')
+    );
+
+    const notas = inputs.map(input =>
+        input.value.trim() === "" ? NaN : Number(input.value)
+    );
+
+    if (notas.some(nota =>
+        !Number.isFinite(nota) || nota < 0 || nota > 5
+    )) {
+        mostrarMensagem(
+            "Preencha todas as notas entre 0 e 5.",
+            true
+        );
         return;
     }
 
-    let totais = Array(8).fill(0);
+    botao.disabled = true;
+    botao.textContent = "Enviando...";
 
-    snapshot.forEach(doc => {
-        let dados = doc.data().notas;
+    try {
 
-        dados.forEach((nota, i) => {
-            totais[i] += nota;
+        await db.collection("avaliacoes").add({
+            notas: notas,
+            criadoEm: firebase.firestore.FieldValue.serverTimestamp()
         });
-    });
 
-    let medias = totais.map(t => t / snapshot.size);
+        formulario.reset();
 
-    let nomes = ["Leticia","Camila","André","Kayky","Danrlei","Everton","Helder","Veronica"];
+        mostrarMensagem("Avaliação enviada com sucesso!");
 
-    let texto = "RESULTADO FINAL:\n\n";
+        await calcular();
 
-    medias.forEach((m,i)=>{
-        texto += `${nomes[i]}: ${m.toFixed(2)}\n`;
-    });
+    } catch (erro) {
 
-    document.getElementById("resultado").innerText = texto;
+        console.error("Erro ao enviar:", erro);
+
+        if (erro.code === "permission-denied") {
+            mostrarMensagem(
+                "O Firebase bloqueou o envio. Verifique as regras do Firestore.",
+                true
+            );
+        } else {
+            mostrarMensagem(
+                "Erro ao enviar avaliação: " + erro.message,
+                true
+            );
+        }
+
+    } finally {
+
+        botao.disabled = false;
+        botao.textContent = "Enviar Avaliação";
+
+    }
+
+});
+
+// CALCULAR MÉDIAS
+async function calcular() {
+
+    try {
+
+        const snapshot = await db.collection("avaliacoes").get();
+
+        if (snapshot.empty) {
+            mostrarMensagem("Ainda não há avaliações enviadas.");
+            return;
+        }
+
+        const totais = Array(8).fill(0);
+        let quantidade = 0;
+
+        snapshot.forEach(doc => {
+
+            const dados = doc.data();
+
+            if (
+                !Array.isArray(dados.notas) ||
+                dados.notas.length !== 8 ||
+                !dados.notas.every(n =>
+                    Number.isFinite(n) && n >= 0 && n <= 5
+                )
+            ) {
+                return;
+            }
+
+            dados.notas.forEach((nota, indice) => {
+                totais[indice] += nota;
+            });
+
+            quantidade++;
+
+        });
+
+        if (quantidade === 0) {
+            mostrarMensagem("Ainda não há avaliações válidas.");
+            return;
+        }
+
+        let texto = "RESULTADO FINAL (" +
+            quantidade + " avaliações):\n\n";
+
+        totais.forEach((total, indice) => {
+
+            const media = total / quantidade;
+
+            texto += nomes[indice] + ": " +
+                media.toFixed(2) + "\n";
+
+        });
+
+        resultado.textContent = texto;
+        resultado.style.color = "#166534";
+
+    } catch (erro) {
+
+        console.error("Erro ao calcular:", erro);
+
+        mostrarMensagem(
+            "Não foi possível consultar as avaliações. Verifique as permissões do Firestore.",
+            true
+        );
+
+    }
+
 }
 
-// já tenta calcular ao abrir
+// CALCULAR AO ABRIR A PÁGINA
 calcular();
 
 </script>
